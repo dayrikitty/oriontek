@@ -1,4 +1,5 @@
-import { useState } from "react";
+/* eslint-disable react/prop-types */
+import { useEffect, useState } from "react";
 import {
   TextField,
   Button,
@@ -8,21 +9,32 @@ import {
   Collapse,
   IconButton,
 } from "@mui/material";
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
-// eslint-disable-next-line react/prop-types
-const ClientForm = ({ token, onClientAdded }) => {
+const ClientForm = ({
+  token,
+  onClientAdded,
+  selectedClient,
+  setSelectedClient,
+}) => {
   const [clientName, setClientName] = useState("");
   const [clientEmail, setClientEmail] = useState("");
-  const [addresses, setAddresses] = useState([
-    { street: "", city: "", state: "", postal_code: "" },
-  ]);
+  const [addresses, setAddresses] = useState([{ street: "", city: "", postal_code: "" }]);
   const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (selectedClient) {
+      setClientName(selectedClient.name);
+      setClientEmail(selectedClient.email);
+      setAddresses(selectedClient.addresses);
+      setIsOpen(true);
+    }
+  }, [selectedClient]);
 
   const handleAddAddress = () => {
     setAddresses([
       ...addresses,
-      { street: "", city: "", state: "", postal_code: "" },
+      { street: "", city: "", postal_code: "" },
     ]);
   };
 
@@ -35,28 +47,52 @@ const ClientForm = ({ token, onClientAdded }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const response = await fetch("http://localhost:8000/api/clients/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        name: clientName,
-        email: clientEmail,
-        addresses: addresses.filter((address) => address.street), // Only send filled addresses
-      }),
-    });
+    const payload = {
+      name: clientName,
+      email: clientEmail,
+      addresses: addresses.filter((address) => address.street), // Only send filled addresses
+    };
+
+    let response;
+    if (selectedClient) {
+      // Update client
+      response = await fetch(
+        `http://localhost:8000/api/clients/${selectedClient.id}/`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+    } else {
+      // Create new client
+      response = await fetch("http://localhost:8000/api/clients/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+    }
 
     if (response.ok) {
       onClientAdded();
-      setClientName("");
-      setClientEmail("");
-      setAddresses([{ street: "", city: "", state: "", postal_code: "" }]);
-      setIsOpen(false);
+      handleReset();
     } else {
-      console.error("Failed to add client");
+      console.error("Failed to save client");
     }
+  };
+
+  const handleReset = () => {
+    setClientName("");
+    setClientEmail("");
+    setAddresses([{ street: "", city: "", postal_code: "" }]);
+    setSelectedClient(null);
+    setIsOpen(false);
   };
 
   return (
@@ -68,7 +104,9 @@ const ClientForm = ({ token, onClientAdded }) => {
           justifyContent: "space-between",
         }}
       >
-        <Typography variant="h6">Add New Client</Typography>
+        <Typography variant="h6">
+          {selectedClient ? "Update Client" : "Add New Client"}
+        </Typography>
         <IconButton onClick={() => setIsOpen(!isOpen)}>
           <ExpandMoreIcon
             sx={{
@@ -124,16 +162,6 @@ const ClientForm = ({ token, onClientAdded }) => {
                 sx={{ marginBottom: "0.5rem" }}
               />
               <TextField
-                label="State"
-                variant="outlined"
-                fullWidth
-                value={address.state}
-                onChange={(e) =>
-                  handleAddressChange(index, "state", e.target.value)
-                }
-                sx={{ marginBottom: "0.5rem" }}
-              />
-              <TextField
                 label="Postal Code"
                 variant="outlined"
                 fullWidth
@@ -152,8 +180,19 @@ const ClientForm = ({ token, onClientAdded }) => {
             Add Another Address
           </Button>
           <Button type="submit" variant="contained" color="primary" fullWidth>
-            Add Client
+            {selectedClient ? "Update Client" : "Add Client"}
           </Button>
+          {selectedClient && (
+            <Button
+              variant="outlined"
+              color="secondary"
+              fullWidth
+              onClick={handleReset}
+              sx={{ marginTop: "1rem" }}
+            >
+              Cancel
+            </Button>
+          )}
         </form>
       </Collapse>
     </Paper>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Table,
   TableBody,
@@ -11,8 +11,9 @@ import {
 import ClientForm from "./clientForm";
 
 // eslint-disable-next-line react/prop-types
-const ClientManager = ({ token }) => {
+const Client = ({ token }) => {
   const [clients, setClients] = useState([]);
+  const [selectedClient, setSelectedClient] = useState(null);
 
   const fetchClients = async () => {
     const response = await fetch("http://localhost:8000/api/clients/", {
@@ -32,9 +33,18 @@ const ClientManager = ({ token }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
+  const handleRowClick = (client) => {
+    setSelectedClient(client);
+  };
+
   return (
     <div>
-      <ClientForm token={token} onClientAdded={fetchClients} />
+      <ClientForm
+        token={token}
+        onClientAdded={fetchClients}
+        selectedClient={selectedClient}
+        setSelectedClient={setSelectedClient}
+      />
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
@@ -46,14 +56,18 @@ const ClientManager = ({ token }) => {
           </TableHead>
           <TableBody>
             {clients.map((client) => (
-              <TableRow key={client.id}>
+              <TableRow
+                key={client.id}
+                hover
+                onClick={() => handleRowClick(client)}
+                sx={{ cursor: "pointer" }}
+              >
                 <TableCell>{client.name}</TableCell>
                 <TableCell>{client.email}</TableCell>
                 <TableCell>
                   {client.addresses.map((address, index) => (
                     <div key={index}>
-                      {address.street}, {address.city}, {address.state},{" "}
-                      {address.postal_code}
+                      {address.street}, {address.city}, {address.postal_code}
                     </div>
                   ))}
                 </TableCell>
@@ -66,4 +80,4 @@ const ClientManager = ({ token }) => {
   );
 };
 
-export default ClientManager;
+export default Client;
