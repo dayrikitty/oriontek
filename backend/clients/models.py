@@ -13,7 +13,7 @@ class Address(models.Model):
     client = models.ForeignKey(
         Client, related_name="addresses", on_delete=models.CASCADE
     )
-    street = models.CharField(max_length=255)
+    street = models.CharField(max_length=200)
     city = models.CharField(max_length=100)
     number = models.IntegerField()
     apartment = models.IntegerField()
